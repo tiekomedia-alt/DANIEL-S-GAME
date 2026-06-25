@@ -535,12 +535,40 @@ export default function MinecraftGame({ onBack }: { onBack: () => void }) {
     canvas.addEventListener('wheel', onWheel);
     canvas.addEventListener('contextmenu', noCtx);
 
+    // Touch mining: tap-and-hold on the canvas to mine blocks
+    const onTouchStartCanvas = (e: TouchEvent) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      const r = canvas.getBoundingClientRect();
+      mouse.current.x = (t.clientX - r.left) * (CW / r.width);
+      mouse.current.y = (t.clientY - r.top) * (CH / r.height);
+      mouse.current.left = true;
+    };
+    const onTouchMoveCanvas = (e: TouchEvent) => {
+      e.preventDefault();
+      if (!e.touches.length) return;
+      const t = e.touches[0];
+      const r = canvas.getBoundingClientRect();
+      mouse.current.x = (t.clientX - r.left) * (CW / r.width);
+      mouse.current.y = (t.clientY - r.top) * (CH / r.height);
+    };
+    const onTouchEndCanvas = () => { mouse.current.left = false; };
+
+    canvas.addEventListener('touchstart', onTouchStartCanvas, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMoveCanvas, { passive: false });
+    canvas.addEventListener('touchend', onTouchEndCanvas);
+    canvas.addEventListener('touchcancel', onTouchEndCanvas);
+
     rafRef.current = requestAnimationFrame(loop);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
       window.removeEventListener('keydown', (e) => onKey(e, true));
       window.removeEventListener('keyup', (e) => onKey(e, false));
+      canvas.removeEventListener('touchstart', onTouchStartCanvas);
+      canvas.removeEventListener('touchmove', onTouchMoveCanvas);
+      canvas.removeEventListener('touchend', onTouchEndCanvas);
+      canvas.removeEventListener('touchcancel', onTouchEndCanvas);
     };
   }, []);
 
@@ -549,7 +577,7 @@ export default function MinecraftGame({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
       <button onClick={onBack} style={{ position: 'fixed', top: 10, left: 10, zIndex: 200, background: 'rgba(0,0,0,0.82)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>← Menu</button>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: CW * scale, marginBottom: 8, paddingLeft: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'center', width: CW * scale, marginBottom: 8 }}>
         <span style={{ color: '#4caf50', fontWeight: 900, fontSize: 18 }}>⛏️ Daniel's Minecraft</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {score}</span>
       </div>

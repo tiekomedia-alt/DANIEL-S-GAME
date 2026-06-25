@@ -489,7 +489,7 @@ export default function SpaceDefender({ onBack }: { onBack: () => void }) {
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#05050f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
       <button onClick={onBack} style={{ position: 'fixed', top: 10, left: 10, zIndex: 200, background: 'rgba(0,0,0,0.82)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>← Menu</button>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: CW * scale, marginBottom: 8, paddingLeft: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'center', width: CW * scale, marginBottom: 8 }}>
         <span style={{ color: '#b39ddb', fontWeight: 900, fontSize: 18 }}>🚀 Space Defender</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Wave {ui.wave}</span>
       </div>
