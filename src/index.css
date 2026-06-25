@@ -14,7 +14,7 @@ html, body, #root {
 
 body {
   background: #0a0a1a;
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: "Nunito", "Inter", "Segoe UI", Arial, sans-serif;
 }
 
 canvas {
@@ -28,4 +28,19 @@ button {
 
 button:hover {
   opacity: 0.9;
+}
+
+@keyframes hubFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes hubSlideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hubBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
 }

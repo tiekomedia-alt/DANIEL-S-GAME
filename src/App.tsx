@@ -9,105 +9,178 @@ type GameId = 'minecraft' | 'diamond-rush' | 'space-defender' | 'racing' | 'plat
 
 const GAMES = [
   {
-    id: 'minecraft' as GameId,
+    id: 'minecraft' as const,
     title: "Daniel's Minecraft",
-    description: 'Mine blocks, build worlds! YOU are the hero!',
-    emoji: '⛏️',
-    bg: 'linear-gradient(135deg, #2d5a27, #4caf50)',
-    border: '#4caf50',
-    surprise: true,
+    icon: '⛏️',
+    description: 'Mine blocks, build worlds, and become the hero!',
+    badge: '🎁 Surprise!',
+    gradient: 'linear-gradient(135deg, #2f7d32, #48b04d)',
+    glowColor: 'rgba(76,175,80,0.35)',
+    borderActive: 'rgba(102,187,106,0.7)',
+    stat: 'Best Score: 0 ⭐',
   },
   {
-    id: 'diamond-rush' as GameId,
+    id: 'diamond-rush' as const,
     title: 'Diamond Rush',
-    description: 'Collect diamonds, dodge boulders — the classic adventure!',
-    emoji: '💎',
-    bg: 'linear-gradient(135deg, #1a237e, #3f51b5)',
-    border: '#7986cb',
+    icon: '💎',
+    description: 'Collect diamonds, dodge boulders, and find the golden door.',
+    gradient: 'linear-gradient(135deg, #243b96, #4466dd)',
+    glowColor: 'rgba(68,102,221,0.35)',
+    borderActive: 'rgba(121,134,203,0.7)',
+    stat: 'Diamonds: 0 / 4',
   },
   {
-    id: 'space-defender' as GameId,
+    id: 'space-defender' as const,
     title: 'Space Defender',
-    description: "Daniel's spaceship blasts aliens across the galaxy!",
-    emoji: '🚀',
-    bg: 'linear-gradient(135deg, #4a148c, #9c27b0)',
-    border: '#ce93d8',
+    icon: '🚀',
+    description: 'Blast aliens and protect the galaxy!',
+    gradient: 'linear-gradient(135deg, #5b21b6, #a21caf)',
+    glowColor: 'rgba(147,51,234,0.35)',
+    borderActive: 'rgba(206,147,216,0.7)',
+    stat: 'Wave 1',
   },
   {
-    id: 'racing' as GameId,
+    id: 'racing' as const,
     title: 'Road Racer',
-    description: 'Speed down the highway and dodge all the traffic!',
-    emoji: '🏎️',
-    bg: 'linear-gradient(135deg, #b71c1c, #f44336)',
-    border: '#ef9a9a',
+    icon: '🏎️',
+    description: 'Dodge traffic, collect stars, and race for a high score.',
+    gradient: 'linear-gradient(135deg, #b91c1c, #ef4444)',
+    glowColor: 'rgba(239,68,68,0.35)',
+    borderActive: 'rgba(239,154,154,0.7)',
+    stat: 'Best Speed: 0 km/h',
   },
   {
-    id: 'platformer' as GameId,
+    id: 'platformer' as const,
     title: 'Super Daniel Run',
-    description: 'Jump, stomp enemies and collect stars in this epic run!',
-    emoji: '⭐',
-    bg: 'linear-gradient(135deg, #e65100, #ff9800)',
-    border: '#ffcc80',
+    icon: '⭐',
+    description: 'Jump across platforms, collect stars, and stomp enemies.',
+    gradient: 'linear-gradient(135deg, #ea580c, #facc15)',
+    glowColor: 'rgba(249,115,22,0.35)',
+    borderActive: 'rgba(255,215,0,0.7)',
+    stat: 'Stars: 0 / 6',
   },
 ];
 
+const MYSTERY_CARD = {
+  id: null,
+  title: 'Mystery Portal',
+  icon: '❓',
+  description: 'A new adventure is coming soon...',
+  gradient: 'linear-gradient(135deg, #334155, #0f172a)',
+  glowColor: 'transparent',
+  borderActive: 'rgba(255,255,255,0.2)',
+  stat: '',
+  disabled: true,
+};
+
 export default function App() {
   const [currentGame, setCurrentGame] = useState<GameId>(null);
-
   const back = () => setCurrentGame(null);
 
-  if (currentGame === 'minecraft') return <MinecraftGame onBack={back} />;
-  if (currentGame === 'diamond-rush') return <DiamondRush onBack={back} />;
+  if (currentGame === 'minecraft')     return <MinecraftGame onBack={back} />;
+  if (currentGame === 'diamond-rush')  return <DiamondRush onBack={back} />;
   if (currentGame === 'space-defender') return <SpaceDefender onBack={back} />;
-  if (currentGame === 'racing') return <RacingGame onBack={back} />;
-  if (currentGame === 'platformer') return <Platformer onBack={back} />;
+  if (currentGame === 'racing')        return <RacingGame onBack={back} />;
+  if (currentGame === 'platformer')    return <Platformer onBack={back} />;
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0d0221, #1a0533, #0d1b4b)',
+      background: `
+        radial-gradient(circle at 50% 0%,   rgba(139,92,246,0.38) 0%, transparent 38%),
+        radial-gradient(circle at 12% 55%,  rgba(59,130,246,0.18) 0%, transparent 30%),
+        radial-gradient(circle at 88% 55%,  rgba(168,85,247,0.18) 0%, transparent 30%),
+        linear-gradient(180deg, #17002f 0%, #090018 100%)
+      `,
+      fontFamily: '"Nunito", "Inter", system-ui, sans-serif',
+      overflowY: 'auto',
+      padding: '52px 20px 64px',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      padding: '40px 20px',
-      fontFamily: '"Segoe UI", Arial, sans-serif',
     }}>
-      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '1000px' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '50px' }}>
-          <div style={{ fontSize: '72px', marginBottom: '12px', filter: 'drop-shadow(0 0 20px rgba(255,200,0,0.8))' }}>🎮</div>
+      <div style={{ width: '100%', maxWidth: '1100px' }}>
+
+        {/* ── Header ── */}
+        <div style={{ textAlign: 'center', marginBottom: '0' }}>
+          <div style={{
+            fontSize: '72px',
+            display: 'inline-block',
+            marginBottom: '18px',
+            filter: 'drop-shadow(0 0 28px rgba(250,204,21,0.75))',
+            animation: 'hubFloat 3s ease-in-out infinite',
+          }}>
+            🎮
+          </div>
+
           <h1 style={{
-            color: 'white',
-            fontSize: 'clamp(32px, 6vw, 56px)',
+            color: '#ffffff',
+            fontSize: 'clamp(2.5rem, 6.5vw, 5rem)',
             fontWeight: 900,
-            margin: 0,
-            letterSpacing: '-1px',
-            textShadow: '0 0 40px rgba(147,112,219,0.9), 0 2px 4px rgba(0,0,0,0.5)',
+            margin: '0 0 14px',
+            lineHeight: 0.95,
+            letterSpacing: '-1.5px',
+            textShadow: '0 0 48px rgba(139,92,246,0.85), 0 3px 10px rgba(0,0,0,0.6)',
           }}>
             Daniel's Game World
           </h1>
+
           <p style={{
-            color: '#b39ddb',
-            fontSize: 'clamp(16px, 3vw, 22px)',
-            marginTop: '12px',
-            fontWeight: 500,
+            color: '#c4b5fd',
+            fontSize: 'clamp(1.05rem, 2.2vw, 1.4rem)',
+            fontWeight: 600,
+            margin: '0 0 30px',
           }}>
-            Welcome, Daniel Vanteko! Choose your adventure 🌟
+            Welcome back, Daniel! Which world should we jump into today? ✨
           </p>
+
+          {/* Stats strip */}
+          <div style={{
+            display: 'inline-flex',
+            gap: '24px',
+            background: 'rgba(255,255,255,0.06)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '40px',
+            padding: '11px 30px',
+            fontSize: '14px',
+            fontWeight: 700,
+            color: '#e2d9f3',
+            marginBottom: '56px',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+          }}>
+            <span>⭐ Total Score: 0</span>
+            <span style={{ color: 'rgba(255,255,255,0.18)' }}>|</span>
+            <span>💎 Gems: 0</span>
+            <span style={{ color: 'rgba(255,255,255,0.18)' }}>|</span>
+            <span>🚀 Best Wave: 1</span>
+          </div>
         </div>
 
-        {/* Games Grid */}
+        {/* ── Game Grid ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
           gap: '24px',
         }}>
-          {GAMES.map(game => (
-            <GameCard key={game.id} game={game} onClick={() => setCurrentGame(game.id)} />
+          {GAMES.map((game, i) => (
+            <GameCard
+              key={game.id}
+              game={game}
+              index={i}
+              onClick={() => setCurrentGame(game.id as GameId)}
+            />
           ))}
+          <GameCard game={MYSTERY_CARD as any} index={5} onClick={() => {}} />
         </div>
 
-        <p style={{ color: '#6b5b95', marginTop: '50px', fontSize: '14px', textAlign: 'center' }}>
+        <p style={{
+          color: '#6b21a8',
+          marginTop: '60px',
+          fontSize: '15px',
+          textAlign: 'center',
+          fontWeight: 600,
+        }}>
           Made with ❤️ especially for Daniel Vanteko
         </p>
       </div>
@@ -115,60 +188,131 @@ export default function App() {
   );
 }
 
-function GameCard({ game, onClick }: { game: typeof GAMES[0]; onClick: () => void }) {
+type AnyGame = typeof GAMES[0] & { disabled?: boolean; badge?: string };
+
+function GameCard({ game, index, onClick }: { game: AnyGame; index: number; onClick: () => void }) {
   const [hovered, setHovered] = React.useState(false);
+  const disabled = !!(game as any).disabled;
 
   return (
     <div
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
+      onClick={disabled ? undefined : onClick}
+      onMouseEnter={() => { if (!disabled) setHovered(true); }}
       onMouseLeave={() => setHovered(false)}
       style={{
-        background: game.bg,
-        borderRadius: '20px',
+        background: game.gradient,
+        borderRadius: '24px',
         padding: '28px',
-        cursor: 'pointer',
+        cursor: disabled ? 'default' : 'pointer',
         position: 'relative',
         overflow: 'hidden',
-        border: `2px solid ${hovered ? game.border : 'rgba(255,255,255,0.1)'}`,
-        transform: hovered ? 'translateY(-8px) scale(1.02)' : 'translateY(0) scale(1)',
+        border: `1px solid ${hovered ? game.borderActive : 'rgba(255,255,255,0.18)'}`,
+        transform: hovered ? 'translateY(-8px) scale(1.015)' : 'translateY(0) scale(1)',
         boxShadow: hovered
-          ? `0 24px 48px rgba(0,0,0,0.5), 0 0 30px ${game.border}55`
-          : '0 4px 20px rgba(0,0,0,0.3)',
-        transition: 'all 0.25s ease',
+          ? `0 24px 60px rgba(0,0,0,0.4), 0 0 32px ${game.glowColor}`
+          : '0 4px 20px rgba(0,0,0,0.25)',
+        transition: 'transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease',
+        opacity: disabled ? 0.72 : 1,
+        animation: `hubSlideUp 420ms ease both`,
+        animationDelay: `${index * 80}ms`,
+        minHeight: '268px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
       }}
     >
-      {game.surprise && (
+      {/* Surprise badge */}
+      {(game as any).badge && (
         <div style={{
-          position: 'absolute', top: '14px', right: '14px',
+          position: 'absolute', top: '16px', right: '16px',
           background: 'linear-gradient(135deg, #ffd700, #ff8c00)',
-          color: '#000', padding: '4px 12px', borderRadius: '20px',
-          fontSize: '11px', fontWeight: 900, letterSpacing: '1px',
+          color: '#000', padding: '5px 13px', borderRadius: '20px',
+          fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px',
+          animation: 'hubBounce 2s ease-in-out infinite',
+          whiteSpace: 'nowrap',
         }}>
-          🎁 SURPRISE!
+          {(game as any).badge}
         </div>
       )}
-      <div style={{
-        fontSize: '52px', marginBottom: '16px', display: 'inline-block',
-        transform: hovered ? 'scale(1.15) rotate(-5deg)' : 'scale(1)',
-        transition: 'transform 0.25s ease',
-      }}>
-        {game.emoji}
+
+      <div>
+        {/* Icon */}
+        <div style={{
+          fontSize: '56px',
+          marginBottom: '14px',
+          display: 'inline-block',
+          transform: hovered ? 'scale(1.14) rotate(-6deg)' : 'scale(1) rotate(0deg)',
+          transition: 'transform 180ms ease',
+          filter: hovered ? 'drop-shadow(0 6px 14px rgba(0,0,0,0.45))' : 'none',
+          lineHeight: 1,
+        }}>
+          {game.icon}
+        </div>
+
+        <h2 style={{
+          color: '#ffffff',
+          fontSize: '1.45rem',
+          fontWeight: 900,
+          margin: '0 0 10px',
+          lineHeight: 1.15,
+        }}>
+          {game.title}
+        </h2>
+
+        <p style={{
+          color: 'rgba(255,255,255,0.88)',
+          fontSize: '0.97rem',
+          margin: '0 0 20px',
+          lineHeight: 1.58,
+          fontWeight: 500,
+        }}>
+          {game.description}
+        </p>
       </div>
-      <h2 style={{ color: 'white', fontSize: '22px', fontWeight: 800, margin: '0 0 10px 0' }}>
-        {game.title}
-      </h2>
-      <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '15px', margin: '0 0 24px 0', lineHeight: 1.6 }}>
-        {game.description}
-      </p>
-      <button style={{
-        background: hovered ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.2)',
-        border: '2px solid rgba(255,255,255,0.5)',
-        color: 'white', padding: '11px 28px', borderRadius: '12px',
-        fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-      }}>
-        PLAY NOW →
-      </button>
+
+      <div>
+        {/* Stat strip */}
+        {game.stat ? (
+          <div style={{
+            color: 'rgba(255,255,255,0.72)',
+            fontSize: '13px',
+            fontWeight: 700,
+            marginBottom: '16px',
+            padding: '6px 13px',
+            background: 'rgba(0,0,0,0.22)',
+            borderRadius: '8px',
+            display: 'inline-block',
+          }}>
+            {game.stat}
+          </div>
+        ) : (
+          <div style={{ marginBottom: '16px', height: '29px' }} />
+        )}
+
+        {/* CTA button */}
+        <button
+          disabled={disabled}
+          style={{
+            display: 'block',
+            width: '100%',
+            height: '52px',
+            borderRadius: '16px',
+            fontWeight: 800,
+            letterSpacing: '0.04em',
+            fontSize: '15px',
+            background: hovered ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.16)',
+            border: '2px solid rgba(255,255,255,0.45)',
+            color: '#ffffff',
+            cursor: disabled ? 'default' : 'pointer',
+            transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+            transition: 'all 180ms ease',
+            fontFamily: 'inherit',
+            outline: 'none',
+          }}
+        >
+          {disabled ? 'COMING SOON' : 'PLAY NOW →'}
+        </button>
+      </div>
     </div>
   );
 }
