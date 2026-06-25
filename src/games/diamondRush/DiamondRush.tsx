@@ -2,135 +2,113 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 // Cell types
 const C = {
-  EMPTY: 0, SOIL: 1, WALL: 2, BOULDER: 3, DIAMOND: 4,
-  PLAYER: 5, EXIT: 6, EXIT_OPEN: 7, FIREFLY: 8,
+  EMPTY: 0, SOIL: 1, WALL: 2, BOULDER: 3,
+  DIAMOND: 4, EXIT: 5, EXIT_OPEN: 6, FIREFLY: 7,
 } as const;
 
-const CELL = 36;
-const COLS = 22;
-const ROWS = 16;
-const CW = COLS * CELL;
-const CH = ROWS * CELL;
+const CELL = 44;
+const COLS = 20;
+const ROWS = 13;
+const CW = COLS * CELL;       // 880
+const CH = ROWS * CELL + 56;  // 572 + 56 = 628
 
-// 5 levels
-const LEVELS: string[] = [
-  // Level 1: Easy intro
-  `......................` +
-  `.WWWWWWWWWWWWWWWWWWW.` +
-  `.W..................W.` +
-  `.W.D..D..D..D..D...W.` +
-  `.W...BBBBB.........W.` +
-  `.W.P.......D.......W.` +
-  `.W.........BBBBB...W.` +
-  `.W.......D.........W.` +
-  `.W...D..........D..W.` +
-  `.W.BBB..BBB.....BBB.W.` +
-  `.W..................W.` +
-  `.W..D.D..D..D..D...W.` +
-  `.W..................W.` +
-  `.W.........E.......W.` +
-  `.WWWWWWWWWWWWWWWWWWW.` +
-  `......................`,
+// Diamonds needed per level
+const DIAMONDS_NEEDED = [4, 6, 8, 10, 12];
 
-  // Level 2
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `W....................W` +
-  `W.P....D..D..D.....W` +
-  `W...BBBB...........W` +
-  `W..........BBBB....W` +
-  `W.D..D...D......D..W` +
-  `W......BBBB........W` +
-  `W.D.D.......D......W` +
-  `W.........BBB..D...W` +
-  `W...D..D...........W` +
-  `W..BBB.........D...W` +
-  `W...........BBBB...W` +
-  `W..D..D..D.........W` +
-  `W..............E...W` +
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `WWWWWWWWWWWWWWWWWWWWWW`,
-
-  // Level 3 with firefly
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `W.P.D.D.D.D.D.D.D..W` +
-  `W...................W` +
-  `W.BBB.BBB.BBB.BBB..W` +
-  `W...................W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W...................W` +
-  `W.BBB.F.....F.BBB..W` +
-  `W...................W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W...................W` +
-  `W.BBB.BBB.BBB.BBB..W` +
-  `W...................W` +
-  `W..D..D..D..D..E...W` +
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `WWWWWWWWWWWWWWWWWWWWWW`,
-
-  // Level 4 harder
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `W.P.B.D.B.D.B.D.B..W` +
-  `W...B...B...B...B...W` +
-  `W.D.B.D.B.D.B.D.B..W` +
-  `W...................W` +
-  `W.BBB.F.BBB.F.BBB..W` +
-  `W...................W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W...................W` +
-  `W.F.BBB.BBB.BBB.F..W` +
-  `W...................W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W...................W` +
-  `W..D..D..D..D..E...W` +
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `WWWWWWWWWWWWWWWWWWWWWW`,
-
-  // Level 5 boss
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `W.P.................W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W.BBB.BBB.BBB.BBB..W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W.F...F...F...F....W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W.BBB.BBB.BBB.BBB..W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W.F...F...F...F....W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W.BBB.BBB.BBB.BBB..W` +
-  `W.D.D.D.D.D.D.D.D..W` +
-  `W..D..D..E.........W` +
-  `WWWWWWWWWWWWWWWWWWWWWW` +
-  `WWWWWWWWWWWWWWWWWWWWWW`,
+// World themes: [wallTop, wallBot, soilTop, soilBot, bgTop, bgBot, accent]
+const THEMES = [
+  { name: 'Jungle',       wall: ['#2e7d32','#1b5e20'], soil: ['#6d4c41','#4e342e'], bg: ['#1a2e1a','#0d1a0d'], accent: '#69f0ae', gem: ['#ce93d8','#9c27b0'], gemGlow: '#e040fb' },
+  { name: 'Crystal Cave', wall: ['#1565c0','#0d47a1'], soil: ['#546e7a','#37474f'], bg: ['#0a1628','#05080f'], accent: '#40c4ff', gem: ['#80deea','#00bcd4'], gemGlow: '#00e5ff' },
+  { name: 'Ruins',        wall: ['#8d6e63','#6d4c41'], soil: ['#a1887f','#795548'], bg: ['#2c1810','#1a0d08'], accent: '#ffcc02', gem: ['#ffe082','#ffc107'], gemGlow: '#ffd740' },
+  { name: 'Deep Cave',    wall: ['#37474f','#263238'], soil: ['#4e342e','#3e2723'], bg: ['#050a0f','#020508'], accent: '#ff6d00', gem: ['#f48fb1','#e91e63'], gemGlow: '#ff4081' },
+  { name: 'Fire Realm',   wall: ['#b71c1c','#7f0000'], soil: ['#4e342e','#3e2723'], bg: ['#1a0505','#0d0000'], accent: '#ff6d00', gem: ['#ffe57a','#ffd600'], gemGlow: '#fff176' },
 ];
 
-function parseLevel(lvl: string): { grid: number[][], playerX: number, playerY: number, exitX: number, exitY: number, diamonds: number, flies: Array<{ x: number, y: number, dir: number }> } {
-  const grid: number[][] = [];
-  let playerX = 1, playerY = 1, exitX = 1, exitY = 1;
-  let diamonds = 0;
-  const flies: Array<{ x: number, y: number, dir: number }> = [];
+// 5 levels (each row MUST be exactly COLS=20 chars)
+const RAW_LEVELS = [
+  // Level 1: Jungle
+  [
+    '####################',
+    '#P.......D.........#',
+    '#..O..D............#',
+    '#.....D....O.......#',
+    '#...D..............#',
+    '#.......O...D......#',
+    '#..D...............#',
+    '#........F.....O...#',
+    '#...O..D...........#',
+    '#..........D...O...#',
+    '#...D..............#',
+    '#.........D....E...#',
+    '####################',
+  ],
+  // Level 2: Crystal Cave
+  [
+    '####################',
+    '#P......D..........#',
+    '#.O.....D...O......#',
+    '#.....D....D.......#',
+    '#.O.........O......#',
+    '#....D..D..........#',
+    '#.....O....O.......#',
+    '#...D..F.....F.....#',
+    '#.O.....D..........#',
+    '#.....O....D.......#',
+    '#....D.....O...D...#',
+    '#..D.......D...E...#',
+    '####################',
+  ],
+  // Level 3: Ruins
+  [
+    '####################',
+    '#P.D...............#',
+    '#..O....D..O.......#',
+    '#.....D....D.......#',
+    '#.O.....O..........#',
+    '#...D...D......D...#',
+    '#......O....O......#',
+    '#.D....F....F...D..#',
+    '#...O......O.......#',
+    '#.....D..D.........#',
+    '#..O......O....D...#',
+    '#..D...D...D...E...#',
+    '####################',
+  ],
+  // Level 4: Deep Cave
+  [
+    '####################',
+    '#P......D..........#',
+    '#.O..D.....O.......#',
+    '#....O....D........#',
+    '#..D.....O.....D...#',
+    '#......D....O......#',
+    '#.O.D...F..D...O...#',
+    '#.....D.....F......#',
+    '#....O....O........#',
+    '#..D.....D.........#',
+    '#......O.......D...#',
+    '#.D..D.....D...E...#',
+    '####################',
+  ],
+  // Level 5: Fire Realm
+  [
+    '####################',
+    '#P...D...D.........#',
+    '#.O.......O....D...#',
+    '#....D.D...........#',
+    '#.O.....O......O...#',
+    '#...D......D.......#',
+    '#.....O..F...F.D...#',
+    '#..D......O........#',
+    '#......D.....O.....#',
+    '#.O..D.....D.......#',
+    '#.......O......O...#',
+    '#..D..D..D.D...E...#',
+    '####################',
+  ],
+];
 
-  for (let r = 0; r < ROWS; r++) {
-    grid[r] = [];
-    for (let c = 0; c < COLS; c++) {
-      const ch = lvl[r * COLS + c] ?? ' ';
-      if (ch === 'W') { grid[r][c] = C.WALL; }
-      else if (ch === 'B') { grid[r][c] = C.BOULDER; }
-      else if (ch === 'D') { grid[r][c] = C.DIAMOND; diamonds++; }
-      else if (ch === 'P') { grid[r][c] = C.EMPTY; playerX = c; playerY = r; }
-      else if (ch === 'E') { grid[r][c] = C.EXIT; exitX = c; exitY = r; }
-      else if (ch === 'F') {
-        grid[r][c] = C.FIREFLY;
-        flies.push({ x: c, y: r, dir: 0 });
-      }
-      else { grid[r][c] = C.SOIL; }
-    }
-  }
-  return { grid, playerX, playerY, exitX, exitY, diamonds, flies };
-}
-
-interface FlyState { x: number; y: number; dir: number; }
+interface FlyState { x: number; y: number; dir: number; animFrame: number; }
 
 interface State {
   grid: number[][];
@@ -143,37 +121,337 @@ interface State {
   won: boolean;
   lives: number;
   score: number;
+  combo: number;
+  comboTimer: number;
   level: number;
+  timeLeft: number;
+  timerInterval: number;
+  particles: Array<{ x: number; y: number; vx: number; vy: number; life: number; color: string; }>;
   moveDelay: number;
-  flyTimer: number;
+  animFrame: number;
+  walkDir: number;
+  lastMoved: number;
 }
 
-// Directions: 0=right, 1=down, 2=left, 3=up
-const DX = [1, 0, -1, 0];
-const DY = [0, 1, 0, -1];
+function parseLevel(rows: string[]): { grid: number[][]; px: number; py: number; exX: number; exY: number; totalDiamonds: number; flies: FlyState[] } {
+  const grid: number[][] = [];
+  let px = 1, py = 1, exX = 18, exY = 11;
+  let totalDiamonds = 0;
+  const flies: FlyState[] = [];
 
-function drawDanielFace(ctx: CanvasRenderingContext2D, x: number, y: number, size: number) {
-  const s = size / CELL;
-  const cx = x + size / 2;
-  const cy = y + size / 2;
+  for (let r = 0; r < ROWS; r++) {
+    grid[r] = [];
+    const row = rows[r] || '';
+    for (let c = 0; c < COLS; c++) {
+      const ch = row[c] ?? '#';
+      if (ch === '#') grid[r][c] = C.WALL;
+      else if (ch === 'O') grid[r][c] = C.BOULDER;
+      else if (ch === 'D') { grid[r][c] = C.DIAMOND; totalDiamonds++; }
+      else if (ch === 'P') { grid[r][c] = C.EMPTY; px = c; py = r; }
+      else if (ch === 'E') { grid[r][c] = C.EXIT; exX = c; exY = r; }
+      else if (ch === 'F') {
+        grid[r][c] = C.FIREFLY;
+        flies.push({ x: c, y: r, dir: 0, animFrame: 0 });
+      }
+      else if (ch === '.') grid[r][c] = C.SOIL;
+      else grid[r][c] = C.EMPTY;
+    }
+  }
+  return { grid, px, py, exX, exY, totalDiamonds, flies };
+}
 
-  // body
-  ctx.fillStyle = '#e53935';
-  ctx.fillRect(x + 4 * s, y + 14 * s, 12 * s, 10 * s);
-  // head
-  ctx.fillStyle = '#ffcc80';
-  ctx.fillRect(x + 6 * s, y + 4 * s, 12 * s, 11 * s);
-  // hair
-  ctx.fillStyle = '#5d4037';
-  ctx.fillRect(x + 6 * s, y + 4 * s, 12 * s, 3 * s);
-  // eyes
+// ──────────────────────────────────────────────
+// Drawing helpers
+// ──────────────────────────────────────────────
+
+function drawWall(ctx: CanvasRenderingContext2D, sx: number, sy: number, theme: typeof THEMES[0]) {
+  const g = ctx.createLinearGradient(sx, sy, sx, sy + CELL);
+  g.addColorStop(0, theme.wall[0]);
+  g.addColorStop(1, theme.wall[1]);
+  ctx.fillStyle = g;
+  ctx.fillRect(sx, sy, CELL, CELL);
+  // Brick lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.lineWidth = 1;
+  const brickH = CELL / 2;
+  for (let row = 0; row < 2; row++) {
+    const offset = row % 2 === 0 ? 0 : CELL * 0.3;
+    const by = sy + row * brickH;
+    ctx.strokeRect(sx + offset, by, CELL * 0.6, brickH);
+    ctx.strokeRect(sx + offset + CELL * 0.6, by, CELL * 0.4, brickH);
+  }
+  // Highlight top edge
+  ctx.fillStyle = 'rgba(255,255,255,0.1)';
+  ctx.fillRect(sx, sy, CELL, 3);
+}
+
+function drawSoil(ctx: CanvasRenderingContext2D, sx: number, sy: number, theme: typeof THEMES[0]) {
+  const g = ctx.createLinearGradient(sx, sy, sx, sy + CELL);
+  g.addColorStop(0, theme.soil[0]);
+  g.addColorStop(1, theme.soil[1]);
+  ctx.fillStyle = g;
+  ctx.fillRect(sx, sy, CELL, CELL);
+  // Texture dots
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  const dotPositions = [[8,8],[20,18],[32,10],[14,30],[28,28],[6,22],[38,20],[10,38]];
+  for (const [dx, dy] of dotPositions) {
+    ctx.beginPath();
+    ctx.arc(sx + dx, sy + dy, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Small rock
+  ctx.fillStyle = 'rgba(0,0,0,0.15)';
+  ctx.beginPath();
+  ctx.ellipse(sx + 30, sy + 32, 5, 3, 0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawBoulder(ctx: CanvasRenderingContext2D, sx: number, sy: number) {
+  const cx = sx + CELL / 2;
+  const cy = sy + CELL / 2;
+  const r = CELL / 2 - 4;
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(cx + 3, cy + 3, r, r * 0.85, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Main rock
+  const rg = ctx.createRadialGradient(cx - 6, cy - 6, 2, cx, cy, r);
+  rg.addColorStop(0, '#cfd8dc');
+  rg.addColorStop(0.5, '#90a4ae');
+  rg.addColorStop(1, '#546e7a');
+  ctx.fillStyle = rg;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Crack lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(cx - 5, cy - 8); ctx.lineTo(cx + 2, cy + 4);
+  ctx.moveTo(cx + 6, cy - 6); ctx.lineTo(cx - 2, cy + 7);
+  ctx.stroke();
+  // Highlight
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(cx - 6, cy - 6, 6, 4, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDiamond(ctx: CanvasRenderingContext2D, sx: number, sy: number, theme: typeof THEMES[0], t: number) {
+  const cx = sx + CELL / 2;
+  const cy = sy + CELL / 2;
+  const bob = Math.sin(t * 3) * 2;
+  const spin = Math.abs(Math.sin(t * 2));
+
+  // Glow
+  const glow = ctx.createRadialGradient(cx, cy + bob, 2, cx, cy + bob, 18);
+  glow.addColorStop(0, theme.gemGlow + 'aa');
+  glow.addColorStop(1, 'transparent');
+  ctx.fillStyle = glow;
+  ctx.fillRect(sx - 4, sy - 4, CELL + 8, CELL + 8);
+
+  ctx.save();
+  ctx.translate(cx, cy + bob);
+  ctx.scale(1 + spin * 0.08, 1);
+
+  // Gem body
+  const g = ctx.createLinearGradient(-12, -14, 12, 14);
+  g.addColorStop(0, theme.gem[0]);
+  g.addColorStop(0.5, theme.gemGlow);
+  g.addColorStop(1, theme.gem[1]);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(0, -14);   // top
+  ctx.lineTo(12, -3);   // upper right
+  ctx.lineTo(12, 4);    // lower right
+  ctx.lineTo(0, 14);    // bottom
+  ctx.lineTo(-12, 4);   // lower left
+  ctx.lineTo(-12, -3);  // upper left
+  ctx.closePath();
+  ctx.fill();
+  // Facet lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, -14); ctx.lineTo(0, 14);
+  ctx.moveTo(-12, 0); ctx.lineTo(12, 0);
+  ctx.stroke();
+  // Shine
+  ctx.fillStyle = 'rgba(255,255,255,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(-4, -12); ctx.lineTo(4, -8); ctx.lineTo(0, -4);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawExit(ctx: CanvasRenderingContext2D, sx: number, sy: number, open: boolean, t: number) {
+  // Door frame
+  ctx.fillStyle = open ? '#1b5e20' : '#4e342e';
+  ctx.fillRect(sx + 4, sy + 4, CELL - 8, CELL - 4);
+  // Door arch
+  ctx.fillStyle = open ? '#2e7d32' : '#6d4c41';
+  ctx.beginPath();
+  ctx.arc(sx + CELL / 2, sy + 14, 14, Math.PI, 0);
+  ctx.lineTo(sx + CELL - 10, sy + CELL - 4);
+  ctx.lineTo(sx + 10, sy + CELL - 4);
+  ctx.closePath();
+  ctx.fill();
+
+  if (open) {
+    // Glow when open
+    const pulse = 0.5 + Math.abs(Math.sin(t * 4)) * 0.5;
+    ctx.fillStyle = `rgba(105,240,174,${pulse * 0.6})`;
+    ctx.beginPath();
+    ctx.arc(sx + CELL / 2, sy + 14, 14, Math.PI, 0);
+    ctx.lineTo(sx + CELL - 10, sy + CELL - 4);
+    ctx.lineTo(sx + 10, sy + CELL - 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('GO!', sx + CELL / 2, sy + CELL - 10);
+    ctx.textAlign = 'left';
+  } else {
+    // Lock icon
+    ctx.fillStyle = '#ffcc02';
+    ctx.fillRect(sx + CELL / 2 - 5, sy + CELL / 2 - 2, 10, 9);
+    ctx.strokeStyle = '#ffcc02';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(sx + CELL / 2, sy + CELL / 2 - 2, 5, Math.PI, 0);
+    ctx.stroke();
+  }
+}
+
+function drawFirefly(ctx: CanvasRenderingContext2D, sx: number, sy: number, t: number, animFrame: number) {
+  const cx = sx + CELL / 2;
+  const cy = sy + CELL / 2;
+  const glow = 0.4 + Math.abs(Math.sin(t * 5)) * 0.6;
+  const wingFlap = Math.sin(animFrame * 0.4) * 5;
+
+  // Glow aura
+  const glowG = ctx.createRadialGradient(cx, cy, 2, cx, cy, 20);
+  glowG.addColorStop(0, `rgba(255,140,0,${glow})`);
+  glowG.addColorStop(1, 'transparent');
+  ctx.fillStyle = glowG;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Wings
+  ctx.fillStyle = `rgba(255,200,100,${0.5 + glow * 0.3})`;
+  ctx.beginPath();
+  ctx.ellipse(cx - 10, cy - 4 + wingFlap, 10, 5, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 10, cy - 4 - wingFlap, 10, 5, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Body
+  const bodyG = ctx.createRadialGradient(cx - 2, cy - 2, 1, cx, cy, 9);
+  bodyG.addColorStop(0, '#ffee58');
+  bodyG.addColorStop(0.6, '#ff6f00');
+  bodyG.addColorStop(1, '#bf360c');
+  ctx.fillStyle = bodyG;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 9, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Eyes
   ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(x + 9 * s, y + 9 * s, 2 * s, 2 * s);
-  ctx.fillRect(x + 13 * s, y + 9 * s, 2 * s, 2 * s);
-  // pants
-  ctx.fillStyle = '#1565c0';
-  ctx.fillRect(x + 4 * s, y + 22 * s, 5 * s, 8 * s);
-  ctx.fillRect(x + 11 * s, y + 22 * s, 5 * s, 8 * s);
+  ctx.beginPath();
+  ctx.arc(cx + 5, cy - 2, 2, 0, Math.PI * 2);
+  ctx.arc(cx - 5, cy - 2, 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.beginPath();
+  ctx.arc(cx + 6, cy - 3, 1, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDanielExplorer(ctx: CanvasRenderingContext2D, sx: number, sy: number, facingRight: boolean, walkFrame: number) {
+  ctx.save();
+  ctx.translate(sx + CELL / 2, sy + CELL / 2);
+  if (!facingRight) ctx.scale(-1, 1);
+
+  const leg = Math.sin(walkFrame * 0.4) * 5;
+
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(0, 18, 12, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Legs / boots
+  ctx.fillStyle = '#5d4037';
+  ctx.fillRect(-8, 5, 6, 12 + leg | 0);
+  ctx.fillRect(2, 5, 6, 12 - leg | 0);
+  // Boot shine
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-8, 14, 6, 3);
+  ctx.fillRect(2, 14, 6, 3);
+
+  // Body — adventure jacket
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-9, -8, 18, 14);
+  // Jacket lapels
+  ctx.fillStyle = '#6d4c41';
+  ctx.beginPath();
+  ctx.moveTo(-3, -8); ctx.lineTo(0, -2); ctx.lineTo(-9, -8);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(3, -8); ctx.lineTo(0, -2); ctx.lineTo(9, -8);
+  ctx.fill();
+  // Belt
+  ctx.fillStyle = '#4e342e';
+  ctx.fillRect(-9, 3, 18, 3);
+  ctx.fillStyle = '#ffcc02';
+  ctx.fillRect(-2, 2, 4, 5);
+
+  // Arms
+  const armSwing = Math.sin(walkFrame * 0.4) * 5;
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-13, -7 + armSwing | 0, 4, 13);
+  ctx.fillRect(9, -7 - armSwing | 0, 4, 13);
+  // Gloves
+  ctx.fillStyle = '#5d4037';
+  ctx.fillRect(-13, 4 + armSwing | 0, 4, 4);
+  ctx.fillRect(9, 4 - armSwing | 0, 4, 4);
+
+  // Head
+  ctx.fillStyle = '#ffcc80';
+  ctx.fillRect(-8, -22, 16, 14);
+  // Hair
+  ctx.fillStyle = '#5d4037';
+  ctx.fillRect(-8, -22, 16, 4);
+  ctx.fillRect(-8, -22, 3, 9);
+
+  // Explorer hat!
+  ctx.fillStyle = '#6d4c41';
+  ctx.fillRect(-11, -26, 22, 5); // brim
+  ctx.fillStyle = '#8d6e63';
+  ctx.fillRect(-7, -32, 14, 8); // crown
+  ctx.fillStyle = '#4e342e';
+  ctx.fillRect(-7, -26, 14, 2); // hat band
+  ctx.fillStyle = '#ffcc02';
+  ctx.fillRect(0, -26, 4, 2); // hat pin
+
+  // Eyes
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(-5, -17, 3, 3);
+  ctx.fillRect(2, -17, 3, 3);
+  // Eye whites
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.fillRect(-4, -17, 1, 1);
+  ctx.fillRect(3, -17, 1, 1);
+  // Smile
+  ctx.fillStyle = '#c62828';
+  ctx.fillRect(-3, -12, 6, 2);
+
+  ctx.restore();
 }
 
 export default function DiamondRush({ onBack }: { onBack: () => void }) {
@@ -181,36 +459,67 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
   const stateRef = useRef<State | null>(null);
   const keysRef = useRef(new Set<string>());
   const rafRef = useRef(0);
-  const lastMoveRef = useRef(0);
   const lastPhysicsRef = useRef(0);
   const lastFlyRef = useRef(0);
-  const [ui, setUi] = useState({ lives: 3, score: 0, level: 1, collected: 0, total: 0, alive: true, won: false });
+  const lastMoveRef = useRef(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const faceRight = useRef(true);
+  const walkFrame = useRef(0);
+  const [ui, setUi] = useState({ lives: 3, score: 0, level: 1, collected: 0, need: 4, timeLeft: 120, alive: true, won: false, total: 0 });
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }, []);
 
   const initLevel = useCallback((lvlIdx: number, lives: number, score: number) => {
-    const lvlStr = LEVELS[Math.min(lvlIdx, LEVELS.length - 1)];
-    const { grid, playerX, playerY, exitX, exitY, diamonds, flies } = parseLevel(lvlStr);
+    stopTimer();
+    const rows = RAW_LEVELS[Math.min(lvlIdx, RAW_LEVELS.length - 1)];
+    const { grid, px, py, exX, exY, totalDiamonds, flies } = parseLevel(rows);
+    const timeLeft = 90 + (4 - Math.min(lvlIdx, 4)) * 30; // 90-210s
+
     stateRef.current = {
-      grid, px: playerX, py: playerY, exX: exitX, exY: exitY,
-      totalDiamonds: diamonds, collected: 0,
-      flies, alive: true, won: false, lives, score, level: lvlIdx,
-      moveDelay: 150, flyTimer: 0,
+      grid, px, py, exX, exY, totalDiamonds,
+      collected: 0, flies, alive: true, won: false,
+      lives, score, combo: 0, comboTimer: 0,
+      level: lvlIdx, timeLeft, timerInterval: 0,
+      particles: [], moveDelay: 130,
+      animFrame: 0, walkDir: 1, lastMoved: 0,
     };
-  }, []);
+
+    timerRef.current = setInterval(() => {
+      if (!stateRef.current || !stateRef.current.alive || stateRef.current.won) return;
+      stateRef.current.timeLeft--;
+      if (stateRef.current.timeLeft <= 0) {
+        stateRef.current.alive = false;
+        stateRef.current.lives--;
+      }
+    }, 1000);
+  }, [stopTimer]);
 
   useEffect(() => {
     initLevel(0, 3, 0);
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
 
-    const DIAMONDS_NEEDED = [3, 5, 8, 10, 15];
-
-    function getCell(g: number[][], r: number, c: number): number {
+    const getCell = (g: number[][], r: number, c: number): number => {
       if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return C.WALL;
       return g[r][c];
-    }
-    function setCell(g: number[][], r: number, c: number, v: number) {
+    };
+    const setCell = (g: number[][], r: number, c: number, v: number) => {
       if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
       g[r][c] = v;
+    };
+
+    function spawnParticles(s: State, x: number, y: number, color: string, count = 8) {
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const speed = 2 + Math.random() * 3;
+        s.particles.push({
+          x: x * CELL + CELL / 2, y: y * CELL + CELL / 2,
+          vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+          life: 0.8 + Math.random() * 0.4, color,
+        });
+      }
     }
 
     function tryMove(dx: number, dy: number) {
@@ -219,36 +528,46 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
       const nx = s.px + dx;
       const ny = s.py + dy;
       const cell = getCell(s.grid, ny, nx);
+      const need = DIAMONDS_NEEDED[s.level] || 4;
 
       if (cell === C.WALL) return;
-      if (cell === C.BOULDER) {
-        // Push boulder
-        if (dy === 0) {
-          const bx2 = nx + dx;
-          if (getCell(s.grid, ny, bx2) === C.EMPTY) {
-            setCell(s.grid, ny, bx2, C.BOULDER);
-            setCell(s.grid, ny, nx, C.EMPTY);
-          } else return;
+      if (cell === C.FIREFLY) { s.alive = false; s.lives--; return; }
+      if (cell === C.EXIT && s.collected < need) return;
+      if (cell === C.BOULDER && dy === 0) {
+        const bx2 = nx + dx;
+        if (getCell(s.grid, ny, bx2) === C.EMPTY) {
+          setCell(s.grid, ny, bx2, C.BOULDER);
+          setCell(s.grid, ny, nx, C.EMPTY);
         } else return;
       }
-      if (cell === C.EXIT && s.collected < DIAMONDS_NEEDED[s.level]) return;
-      if (cell === C.FIREFLY) { s.alive = false; s.lives--; return; }
-
-      if (cell === C.DIAMOND) s.collected++;
-      if (cell === C.EXIT_OPEN || (cell === C.EXIT && s.collected >= DIAMONDS_NEEDED[s.level])) {
-        s.score += s.collected * 100 + 500;
+      if ((cell === C.EXIT_OPEN) || (cell === C.EXIT && s.collected >= need)) {
+        s.score += s.collected * 150 + s.timeLeft * 10 + 500;
         s.won = true;
+        stopTimer();
         return;
+      }
+
+      if (cell === C.DIAMOND) {
+        s.collected++;
+        s.combo++;
+        s.comboTimer = 120;
+        const bonusScore = s.combo > 1 ? s.combo * 100 : 50;
+        s.score += bonusScore;
+        const theme = THEMES[Math.min(s.level, THEMES.length - 1)];
+        spawnParticles(s, nx, ny, theme.gemGlow, 12);
+        if (s.collected >= need) {
+          setCell(s.grid, s.exY, s.exX, C.EXIT_OPEN);
+          spawnParticles(s, s.exX, s.exY, '#69f0ae', 16);
+        }
       }
 
       setCell(s.grid, s.py, s.px, C.EMPTY);
       s.px = nx; s.py = ny;
       setCell(s.grid, ny, nx, C.EMPTY);
 
-      // Check if exit should open
-      if (s.collected >= DIAMONDS_NEEDED[s.level]) {
-        setCell(s.grid, s.exY, s.exX, C.EXIT_OPEN);
-      }
+      if (dx > 0) faceRight.current = true;
+      if (dx < 0) faceRight.current = false;
+      walkFrame.current++;
     }
 
     function physics() {
@@ -259,21 +578,20 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
         for (let c = 0; c < COLS; c++) {
           const cell = getCell(s.grid, r, c);
           if (cell !== C.BOULDER && cell !== C.DIAMOND) continue;
-
           const below = getCell(s.grid, r + 1, c);
           if (below === C.EMPTY) {
             setCell(s.grid, r + 1, c, cell);
             setCell(s.grid, r, c, C.EMPTY);
-            // Falling on player kills
             if (s.px === c && s.py === r + 1) { s.alive = false; s.lives--; }
-          } else if ((below === C.BOULDER || below === C.DIAMOND) && cell === C.BOULDER) {
-            // Roll
-            if (getCell(s.grid, r, c + 1) === C.EMPTY && getCell(s.grid, r + 1, c + 1) === C.EMPTY) {
-              setCell(s.grid, r, c + 1, C.BOULDER);
-              setCell(s.grid, r, c, C.EMPTY);
-            } else if (getCell(s.grid, r, c - 1) === C.EMPTY && getCell(s.grid, r + 1, c - 1) === C.EMPTY) {
-              setCell(s.grid, r, c - 1, C.BOULDER);
-              setCell(s.grid, r, c, C.EMPTY);
+          } else if (below === C.BOULDER || below === C.DIAMOND) {
+            if (cell === C.BOULDER) {
+              if (getCell(s.grid, r, c + 1) === C.EMPTY && getCell(s.grid, r + 1, c + 1) === C.EMPTY) {
+                setCell(s.grid, r, c + 1, C.BOULDER);
+                setCell(s.grid, r, c, C.EMPTY);
+              } else if (getCell(s.grid, r, c - 1) === C.EMPTY && getCell(s.grid, r + 1, c - 1) === C.EMPTY) {
+                setCell(s.grid, r, c - 1, C.BOULDER);
+                setCell(s.grid, r, c, C.EMPTY);
+              }
             }
           }
         }
@@ -282,191 +600,183 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
 
     function moveFly(f: FlyState) {
       const s = stateRef.current!;
-      // Firefly follows left-hand-wall rule
-      const leftDir = (f.dir + 3) % 4;
-      const leftX = f.x + DX[leftDir];
-      const leftY = f.y + DY[leftDir];
-      const frontX = f.x + DX[f.dir];
-      const frontY = f.y + DY[f.dir];
+      f.animFrame++;
+      const left = (f.dir + 3) % 4;
+      const dx = [1, 0, -1, 0];
+      const dy = [0, 1, 0, -1];
+      const lx = f.x + dx[left];
+      const ly = f.y + dy[left];
+      const fx = f.x + dx[f.dir];
+      const fy = f.y + dy[f.dir];
 
-      if (getCell(s.grid, leftY, leftX) === C.EMPTY || getCell(s.grid, leftY, leftX) === C.SOIL) {
-        f.dir = leftDir;
-        f.x = leftX; f.y = leftY;
-      } else if (getCell(s.grid, frontY, frontX) === C.EMPTY || getCell(s.grid, frontY, frontX) === C.SOIL) {
-        f.x = frontX; f.y = frontY;
-      } else {
-        f.dir = (f.dir + 1) % 4;
-      }
+      const canMove = (x: number, y: number) => {
+        const c = getCell(s.grid, y, x);
+        return c === C.EMPTY || c === C.SOIL;
+      };
+
+      if (canMove(lx, ly)) { f.dir = left; f.x = lx; f.y = ly; }
+      else if (canMove(fx, fy)) { f.x = fx; f.y = fy; }
+      else { f.dir = (f.dir + 1) % 4; }
 
       if (f.x === s.px && f.y === s.py) { s.alive = false; s.lives--; }
     }
 
-    function draw() {
+    function draw(t: number) {
       const s = stateRef.current!;
-      const DNEED = DIAMONDS_NEEDED[s.level] || 5;
+      const theme = THEMES[Math.min(s.level, THEMES.length - 1)];
+      const need = DIAMONDS_NEEDED[s.level] || 4;
+      const ts = t / 1000;
 
-      ctx.fillStyle = '#111';
-      ctx.fillRect(0, 0, CW, CH + 50);
+      // BG gradient
+      const bg = ctx.createLinearGradient(0, 0, 0, ROWS * CELL);
+      bg.addColorStop(0, theme.bg[0]);
+      bg.addColorStop(1, theme.bg[1]);
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, CW, CH);
 
+      // Draw grid
       for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
           const cell = s.grid[r][c];
           const sx = c * CELL;
           const sy = r * CELL;
 
-          if (cell === C.WALL) {
-            ctx.fillStyle = '#455a64';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-            ctx.lineWidth = 1;
-            ctx.strokeRect(sx, sy, CELL, CELL);
-            ctx.fillStyle = '#546e7a';
-            ctx.fillRect(sx + 2, sy + 2, CELL - 4, 4);
-          } else if (cell === C.SOIL) {
-            ctx.fillStyle = '#795548';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            ctx.fillStyle = '#6d4c41';
-            ctx.fillRect(sx + 2, sy + 2, CELL - 4, 2);
-          } else if (cell === C.EMPTY) {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(sx, sy, CELL, CELL);
-          } else if (cell === C.BOULDER) {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            ctx.beginPath();
-            ctx.arc(sx + CELL / 2, sy + CELL / 2, CELL / 2 - 3, 0, Math.PI * 2);
-            ctx.fillStyle = '#90a4ae';
-            ctx.fill();
-            ctx.beginPath();
-            ctx.arc(sx + CELL / 2 - 4, sy + CELL / 2 - 4, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#cfd8dc';
-            ctx.fill();
-          } else if (cell === C.DIAMOND) {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            const t = Date.now() / 400;
-            const shimmer = Math.abs(Math.sin(t + c + r));
-            ctx.fillStyle = `hsl(${180 + shimmer * 60}, 100%, ${50 + shimmer * 20}%)`;
-            ctx.beginPath();
-            ctx.moveTo(sx + CELL / 2, sy + 4);
-            ctx.lineTo(sx + CELL - 4, sy + CELL / 2);
-            ctx.lineTo(sx + CELL / 2, sy + CELL - 4);
-            ctx.lineTo(sx + 4, sy + CELL / 2);
-            ctx.closePath();
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-          } else if (cell === C.EXIT) {
-            ctx.fillStyle = '#37474f';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            ctx.fillStyle = '#ff5722';
-            ctx.font = `${CELL - 8}px serif`;
-            ctx.fillText('🚪', sx + 2, sy + CELL - 4);
-            ctx.fillStyle = '#f4511e';
-            ctx.font = 'bold 9px monospace';
-            ctx.fillText(`${DNEED - s.collected}💎`, sx, sy + 10);
-          } else if (cell === C.EXIT_OPEN) {
-            ctx.fillStyle = '#1b5e20';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            ctx.fillStyle = '#00e676';
-            const t2 = Math.abs(Math.sin(Date.now() / 200));
-            ctx.globalAlpha = 0.5 + t2 * 0.5;
-            ctx.fillRect(sx + 4, sy + 4, CELL - 8, CELL - 8);
-            ctx.globalAlpha = 1;
-            ctx.fillStyle = 'white';
-            ctx.font = `${CELL - 8}px serif`;
-            ctx.fillText('🚪', sx + 2, sy + CELL - 4);
-          } else if (cell === C.FIREFLY) {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(sx, sy, CELL, CELL);
-            const t3 = Math.abs(Math.sin(Date.now() / 150));
-            ctx.fillStyle = `rgba(255,${100 + t3 * 50 | 0},0,${0.7 + t3 * 0.3})`;
-            ctx.beginPath();
-            ctx.ellipse(sx + CELL / 2, sy + CELL / 2, CELL / 2 - 4, CELL / 3 - 2, 0, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#ffeb3b';
-            ctx.beginPath();
-            ctx.arc(sx + CELL / 2, sy + CELL / 2, 4, 0, Math.PI * 2);
-            ctx.fill();
+          if (cell === C.WALL) { drawWall(ctx, sx, sy, theme); }
+          else if (cell === C.SOIL) { drawSoil(ctx, sx, sy, theme); }
+          else if (cell === C.BOULDER) { drawBoulder(ctx, sx, sy); }
+          else if (cell === C.DIAMOND) { drawDiamond(ctx, sx, sy, theme, ts + c * 0.3 + r * 0.2); }
+          else if (cell === C.EXIT) { drawExit(ctx, sx, sy, false, ts); }
+          else if (cell === C.EXIT_OPEN) { drawExit(ctx, sx, sy, true, ts); }
+          else if (cell === C.FIREFLY) {
+            const fly = s.flies.find(f => f.x === c && f.y === r);
+            drawFirefly(ctx, sx, sy, ts, fly?.animFrame ?? 0);
           }
         }
       }
 
-      // Player (Daniel)
-      drawDanielFace(ctx, s.px * CELL, s.py * CELL, CELL);
-
-      // Fireflies
+      // Fireflies (tracked positions may differ from grid)
       for (const f of s.flies) {
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(f.x * CELL, f.y * CELL, CELL, CELL);
-        const t = Math.abs(Math.sin(Date.now() / 150));
-        ctx.fillStyle = `rgba(255,${80 + t * 60 | 0},0,0.85)`;
-        ctx.beginPath();
-        ctx.ellipse(f.x * CELL + CELL / 2, f.y * CELL + CELL / 2, CELL / 2 - 4, CELL / 3, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#fff176';
-        ctx.beginPath();
-        ctx.arc(f.x * CELL + CELL / 2, f.y * CELL + CELL / 2, 4, 0, Math.PI * 2);
-        ctx.fill();
+        if (s.grid[f.y]?.[f.x] !== C.FIREFLY) {
+          drawFirefly(ctx, f.x * CELL, f.y * CELL, ts, f.animFrame);
+        }
       }
 
-      // HUD
-      ctx.fillStyle = '#111';
-      ctx.fillRect(0, CH, CW, 50);
-      ctx.fillStyle = '#00e5ff';
-      ctx.font = 'bold 16px monospace';
-      ctx.fillText(`💎 ${s.collected}/${DNEED}`, 10, CH + 30);
-      ctx.fillStyle = '#ffd700';
-      ctx.fillText(`⭐ ${s.score}`, 170, CH + 30);
-      ctx.fillStyle = '#ef5350';
-      ctx.fillText(`❤️ ${s.lives}`, 340, CH + 30);
-      ctx.fillStyle = '#b39ddb';
-      ctx.fillText(`Level ${s.level + 1}/5`, 460, CH + 30);
-      ctx.fillStyle = 'rgba(255,255,255,0.5)';
-      ctx.font = '12px sans-serif';
-      ctx.fillText('Arrow keys to move  Collect 💎  Reach 🚪', CW - 300, CH + 30);
+      // Particles
+      for (const p of s.particles) {
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 4 * p.life, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1;
 
-      // Overlays
+      // Player
+      drawDanielExplorer(ctx, s.px * CELL, s.py * CELL, faceRight.current, walkFrame.current);
+
+      // ── HUD ──
+      const hudY = ROWS * CELL;
+      // HUD background
+      const hudG = ctx.createLinearGradient(0, hudY, 0, CH);
+      hudG.addColorStop(0, '#111');
+      hudG.addColorStop(1, '#1a1a1a');
+      ctx.fillStyle = hudG;
+      ctx.fillRect(0, hudY, CW, 56);
+      ctx.fillStyle = theme.accent + '55';
+      ctx.fillRect(0, hudY, CW, 2);
+
+      // Lives
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = i < s.lives ? '#ef5350' : '#333';
+        ctx.font = '20px serif';
+        ctx.fillText('❤️', 8 + i * 28, hudY + 26);
+      }
+
+      // Diamonds collected
+      ctx.font = 'bold 15px monospace';
+      ctx.fillStyle = theme.gemGlow;
+      ctx.fillText(`💎 ${s.collected}/${need}`, 100, hudY + 26);
+
+      // Score
+      ctx.fillStyle = '#ffd700';
+      ctx.fillText(`⭐ ${s.score}`, 220, hudY + 26);
+
+      // Combo
+      if (s.comboTimer > 0 && s.combo > 1) {
+        ctx.fillStyle = `rgba(255,100,0,${s.comboTimer / 120})`;
+        ctx.font = `bold ${14 + Math.min(s.combo, 5)}px monospace`;
+        ctx.fillText(`x${s.combo} COMBO!`, 350, hudY + 26);
+      }
+
+      // Timer
+      const timeColor = s.timeLeft > 30 ? '#80cbc4' : '#ef5350';
+      ctx.fillStyle = timeColor;
+      ctx.font = 'bold 15px monospace';
+      const mins = Math.floor(s.timeLeft / 60);
+      const secs = s.timeLeft % 60;
+      ctx.fillText(`⏱ ${mins}:${secs.toString().padStart(2, '0')}`, CW - 160, hudY + 26);
+
+      // Level / World
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '13px monospace';
+      ctx.fillText(`${theme.name} — Level ${s.level + 1}/5`, CW - 160, hudY + 48);
+
+      // Controls hint
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.font = '11px sans-serif';
+      ctx.fillText('Arrow keys to move · Dig soil · Collect 💎 · Reach the door!', 8, hudY + 50);
+
+      // ── Overlays ──
       if (!s.alive && s.lives <= 0) {
-        ctx.fillStyle = 'rgba(0,0,0,0.75)';
-        ctx.fillRect(0, 0, CW, CH + 50);
+        ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        ctx.fillRect(0, 0, CW, CH);
         ctx.fillStyle = '#ef5350';
-        ctx.font = 'bold 48px sans-serif';
+        ctx.font = 'bold 54px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('GAME OVER!', CW / 2, CH / 2 - 20);
-        ctx.fillStyle = 'white';
-        ctx.font = '24px sans-serif';
-        ctx.fillText(`Score: ${s.score}`, CW / 2, CH / 2 + 25);
-        ctx.fillText('Press R to restart', CW / 2, CH / 2 + 60);
-        ctx.textAlign = 'left';
-      } else if (!s.alive) {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(0, 0, CW, CH + 50);
-        ctx.fillStyle = '#ff9800';
-        ctx.font = 'bold 40px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Oops! Try Again!', CW / 2, CH / 2);
+        ctx.fillText('GAME OVER', CW / 2, CH / 2 - 30);
+        ctx.fillStyle = '#ffd700';
+        ctx.font = 'bold 26px monospace';
+        ctx.fillText(`Final Score: ${s.score}`, CW / 2, CH / 2 + 20);
         ctx.fillStyle = 'white';
         ctx.font = '20px sans-serif';
-        ctx.fillText('Press R to retry level', CW / 2, CH / 2 + 45);
+        ctx.fillText('Press R to play again', CW / 2, CH / 2 + 62);
         ctx.textAlign = 'left';
-      } else if (s.won) {
-        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-        ctx.fillRect(0, 0, CW, CH + 50);
-        ctx.fillStyle = '#69f0ae';
+      } else if (!s.alive) {
+        ctx.fillStyle = 'rgba(0,0,0,0.72)';
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.fillStyle = '#ff9800';
         ctx.font = 'bold 44px sans-serif';
         ctx.textAlign = 'center';
-        if (s.level >= LEVELS.length - 1) {
-          ctx.fillText('YOU WIN! 🏆', CW / 2, CH / 2 - 20);
-          ctx.fillStyle = 'gold';
-          ctx.font = '26px sans-serif';
-          ctx.fillText(`Amazing! Final Score: ${s.score}`, CW / 2, CH / 2 + 25);
+        ctx.fillText(s.timeLeft <= 0 ? '⏱ TIME UP!' : 'CRUSHED! 💀', CW / 2, CH / 2 - 20);
+        ctx.fillStyle = 'white';
+        ctx.font = '22px sans-serif';
+        ctx.fillText('Press R to retry level', CW / 2, CH / 2 + 30);
+        ctx.textAlign = 'left';
+      } else if (s.won) {
+        ctx.fillStyle = 'rgba(0,0,0,0.75)';
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.fillStyle = '#69f0ae';
+        ctx.font = 'bold 48px sans-serif';
+        ctx.textAlign = 'center';
+        if (s.level >= RAW_LEVELS.length - 1) {
+          ctx.fillText('🏆 YOU WIN! 🏆', CW / 2, CH / 2 - 40);
+          ctx.fillStyle = '#ffd700';
+          ctx.font = 'bold 28px monospace';
+          ctx.fillText(`CHAMPION SCORE: ${s.score}`, CW / 2, CH / 2 + 10);
+          ctx.fillStyle = '#fff';
+          ctx.font = '22px sans-serif';
+          ctx.fillText('Daniel conquered all 5 worlds! 🎉', CW / 2, CH / 2 + 55);
         } else {
-          ctx.fillText('Level Clear! ⭐', CW / 2, CH / 2 - 20);
+          ctx.fillText(`🌟 ${theme.name} Clear!`, CW / 2, CH / 2 - 30);
+          ctx.fillStyle = '#ffd700';
+          ctx.font = 'bold 22px monospace';
+          ctx.fillText(`Score: ${s.score}  Time Bonus: +${s.timeLeft * 10}`, CW / 2, CH / 2 + 20);
           ctx.fillStyle = 'white';
           ctx.font = '22px sans-serif';
-          ctx.fillText('Press N for Next Level', CW / 2, CH / 2 + 30);
+          ctx.fillText('Press N for Next World!', CW / 2, CH / 2 + 60);
         }
         ctx.textAlign = 'left';
       }
@@ -476,19 +786,22 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
       const s = stateRef.current!;
       if (!s) { rafRef.current = requestAnimationFrame(loop); return; }
 
-      // Physics
-      if (t - lastPhysicsRef.current > 180) {
+      s.animFrame++;
+      if (s.comboTimer > 0) s.comboTimer--;
+
+      // Physics (gravity for boulders/diamonds)
+      if (t - lastPhysicsRef.current > 160) {
         physics();
         lastPhysicsRef.current = t;
       }
 
-      // Fly movement
-      if (t - lastFlyRef.current > 300) {
+      // Firefly movement
+      if (t - lastFlyRef.current > 320) {
         for (const f of s.flies) moveFly(f);
         lastFlyRef.current = t;
       }
 
-      // Player movement
+      // Player input
       const k = keysRef.current;
       if (t - lastMoveRef.current > s.moveDelay && s.alive && !s.won) {
         if (k.has('ArrowLeft')) { tryMove(-1, 0); lastMoveRef.current = t; }
@@ -497,12 +810,19 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
         else if (k.has('ArrowDown')) { tryMove(0, 1); lastMoveRef.current = t; }
       }
 
-      draw();
+      // Particles
+      s.particles = s.particles.filter(p => {
+        p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.035;
+        p.vx *= 0.96; return p.life > 0;
+      });
+
+      draw(t);
 
       setUi({
         lives: s.lives, score: s.score, level: s.level + 1,
-        collected: s.collected, total: s.totalDiamonds,
-        alive: s.alive, won: s.won,
+        collected: s.collected, need: DIAMONDS_NEEDED[s.level] || 4,
+        timeLeft: s.timeLeft, alive: s.alive, won: s.won,
+        total: s.totalDiamonds,
       });
 
       rafRef.current = requestAnimationFrame(loop);
@@ -511,17 +831,16 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
     const onKey = (e: KeyboardEvent) => {
       keysRef.current.add(e.code);
       const s = stateRef.current!;
-
       if (e.code === 'KeyR') {
         if (!s.alive) {
           if (s.lives <= 0) initLevel(0, 3, 0);
           else initLevel(s.level, s.lives, s.score);
         }
       }
-      if (e.code === 'KeyN' && s.won && s.level < LEVELS.length - 1) {
+      if (e.code === 'KeyN' && s.won && s.level < RAW_LEVELS.length - 1) {
         initLevel(s.level + 1, s.lives, s.score);
       }
-      e.preventDefault();
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
     };
     const offKey = (e: KeyboardEvent) => keysRef.current.delete(e.code);
 
@@ -531,19 +850,20 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
 
     return () => {
       cancelAnimationFrame(rafRef.current);
+      stopTimer();
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', offKey);
     };
-  }, [initLevel]);
+  }, [initLevel, stopTimer]);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#0a0a0a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#050505', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', width: CW, marginBottom: 8, alignItems: 'center' }}>
-        <button onClick={onBack} style={{ background: '#333', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
+        <button onClick={onBack} style={{ background: '#222', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
         <span style={{ color: '#00e5ff', fontWeight: 900, fontSize: 20 }}>💎 Diamond Rush</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {ui.score}</span>
       </div>
-      <canvas ref={canvasRef} width={CW} height={CH + 50} style={{ border: '2px solid #333', display: 'block' }} />
+      <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #1a1a3e', display: 'block' }} />
     </div>
   );
 }
