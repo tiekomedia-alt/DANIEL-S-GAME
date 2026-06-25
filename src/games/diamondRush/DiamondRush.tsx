@@ -868,9 +868,9 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
 
   return (
     <div style={{ width: '100vw', height: '100vh', background: '#050505', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW * scale, marginBottom: 8, alignItems: 'center' }}>
-        <button onClick={onBack} style={{ background: '#222', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
-        <span style={{ color: '#00e5ff', fontWeight: 900, fontSize: 20 }}>💎 Diamond Rush</span>
+      <button onClick={onBack} style={{ position: 'fixed', top: 10, left: 10, zIndex: 200, background: 'rgba(0,0,0,0.82)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>← Menu</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: CW * scale, marginBottom: 8, paddingLeft: 8 }}>
+        <span style={{ color: '#00e5ff', fontWeight: 900, fontSize: 18 }}>💎 Diamond Rush</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {ui.score}</span>
       </div>
       <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
