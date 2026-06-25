@@ -513,7 +513,7 @@ export default function Platformer({ onBack }: { onBack: () => void }) {
         ctx.fillText(`Score: ${s.score}`, CW / 2, CH / 2 + 20);
         ctx.fillStyle = 'white';
         ctx.font = '22px sans-serif';
-        ctx.fillText('Press R to restart', CW / 2, CH / 2 + 65);
+        ctx.fillText('Tap RESTART below ↓', CW / 2, CH / 2 + 65);
         ctx.textAlign = 'left';
       } else if (s.won) {
         ctx.fillStyle = 'rgba(0,0,0,0.7)';
@@ -533,7 +533,7 @@ export default function Platformer({ onBack }: { onBack: () => void }) {
           ctx.fillText('Level Clear! ⭐', CW / 2, CH / 2 - 20);
           ctx.fillStyle = 'white';
           ctx.font = '24px sans-serif';
-          ctx.fillText('Press N for Next Level', CW / 2, CH / 2 + 30);
+          ctx.fillText('Tap NEXT LEVEL below ↓', CW / 2, CH / 2 + 30);
         }
         ctx.textAlign = 'left';
       }
@@ -584,18 +584,28 @@ export default function Platformer({ onBack }: { onBack: () => void }) {
   const scale = useCanvasScale(CW, CH);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#0d0221', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#0d0221', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: isMobile() ? 160 : 0, boxSizing: 'border-box' as const }}>
       <button onClick={onBack} style={{ position: 'fixed', top: 10, left: 10, zIndex: 200, background: 'rgba(0,0,0,0.82)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>← Menu</button>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'center', width: CW * scale, marginBottom: 8 }}>
         <span style={{ color: '#ffcc80', fontWeight: 900, fontSize: 18 }}>⭐ Super Daniel Run</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {ui.score}</span>
       </div>
-      <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ position: 'relative', width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CW, height: CH }}>
           <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #333', display: 'block' }} />
         </div>
+        {!ui.alive && (
+          <div style={{ position: 'absolute', bottom: '10%', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+            <button onClick={() => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', bubbles: true })); }} style={{ padding: '14px 36px', fontSize: 20, fontWeight: 900, background: '#ef5350', color: '#fff', border: 'none', borderRadius: 14, cursor: 'pointer', boxShadow: '0 4px 24px rgba(239,83,80,0.7)', WebkitTapHighlightColor: 'transparent' }}>🔄 RESTART</button>
+          </div>
+        )}
+        {ui.won && ui.level <= 4 && (
+          <div style={{ position: 'absolute', bottom: '10%', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+            <button onClick={() => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyN', bubbles: true })); }} style={{ padding: '14px 36px', fontSize: 20, fontWeight: 900, background: '#69f0ae', color: '#111', border: 'none', borderRadius: 14, cursor: 'pointer', boxShadow: '0 4px 24px rgba(105,240,174,0.7)', WebkitTapHighlightColor: 'transparent' }}>NEXT LEVEL ▶</button>
+          </div>
+        )}
       </div>
-      {isMobile() && <ControlsLRJump />}
+      {isMobile() && ui.alive && !ui.won && <ControlsLRJump />}
     </div>
   );
 }

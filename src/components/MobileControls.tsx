@@ -66,15 +66,18 @@ function TB({
 }
 
 const WRAP: React.CSSProperties = {
+  position: 'fixed',
+  bottom: 0,
+  left: 0,
+  right: 0,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '10px 20px',
-  width: '100%',
+  padding: '12px 20px 18px',
   boxSizing: 'border-box' as const,
-  background: 'rgba(0,0,0,0.45)',
-  borderTop: '1px solid rgba(255,255,255,0.1)',
-  flexShrink: 0,
+  background: 'rgba(0,0,0,0.88)',
+  borderTop: '2px solid rgba(255,255,255,0.12)',
+  zIndex: 100,
 };
 
 // ── D-pad ─────────────────────────────────────────────────────────────────────

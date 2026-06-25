@@ -358,7 +358,7 @@ export default function SpaceDefender({ onBack }: { onBack: () => void }) {
         ctx.fillText(`Score: ${s.score}`, CW / 2, CH / 2 + 20);
         ctx.fillText(`Wave: ${s.wave}`, CW / 2, CH / 2 + 60);
         ctx.font = '20px sans-serif';
-        ctx.fillText('Press R to play again', CW / 2, CH / 2 + 105);
+        ctx.fillText('Tap PLAY AGAIN below ↓', CW / 2, CH / 2 + 105);
         ctx.textAlign = 'left';
         return;
       }
@@ -487,18 +487,23 @@ export default function SpaceDefender({ onBack }: { onBack: () => void }) {
   const scale = useCanvasScale(CW, CH);
 
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#05050f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#05050f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: isMobile() ? 160 : 0, boxSizing: 'border-box' as const }}>
       <button onClick={onBack} style={{ position: 'fixed', top: 10, left: 10, zIndex: 200, background: 'rgba(0,0,0,0.82)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: 12, padding: '10px 18px', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>← Menu</button>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 16, alignItems: 'center', width: CW * scale, marginBottom: 8 }}>
         <span style={{ color: '#b39ddb', fontWeight: 900, fontSize: 18 }}>🚀 Space Defender</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Wave {ui.wave}</span>
       </div>
-      <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ position: 'relative', width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
         <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CW, height: CH }}>
           <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #1a1a3e', display: 'block' }} />
         </div>
+        {!ui.alive && (
+          <div style={{ position: 'absolute', bottom: '10%', left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
+            <button onClick={() => { window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', bubbles: true })); }} style={{ padding: '14px 36px', fontSize: 20, fontWeight: 900, background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 14, cursor: 'pointer', boxShadow: '0 4px 24px rgba(124,58,237,0.7)', WebkitTapHighlightColor: 'transparent' }}>🔄 PLAY AGAIN</button>
+          </div>
+        )}
       </div>
-      {isMobile() && <ControlsDpadShoot />}
+      {isMobile() && ui.alive && <ControlsDpadShoot />}
     </div>
   );
 }
