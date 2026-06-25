@@ -20,8 +20,8 @@ export function loadDanielSheet(): void {
   if (loaded) return;
   const img = new Image();
   img.onload = () => { sheet = img; loaded = true; };
-  img.onerror = () => console.warn('daniel-sheet.jpg not found in /public — using drawn character');
-  img.src = '/daniel-sheet.jpg';
+  img.onerror = () => console.warn('daniel-sheet.jpg.png not found in /public — using drawn character');
+  img.src = '/daniel-sheet.jpg.png';
 }
 
 export function isSheetLoaded(): boolean { return loaded; }
