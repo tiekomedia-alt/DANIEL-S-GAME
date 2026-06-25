@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadDanielSheet, drawDanielFaceCircle, isSheetLoaded } from '../../daniel-sprite';
+import { useCanvasScale, isMobile, ControlsLROnly } from '../../components/MobileControls';
 
 const CW = 480;
 const CH = 640;
@@ -441,14 +442,21 @@ export default function RacingGame({ onBack }: { onBack: () => void }) {
     };
   }, []);
 
+  const scale = useCanvasScale(CW, CH);
+
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW, marginBottom: 8, alignItems: 'center' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW * scale, marginBottom: 8, alignItems: 'center' }}>
         <button onClick={onBack} style={{ background: '#333', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
         <span style={{ color: '#ef9a9a', fontWeight: 900, fontSize: 20 }}>🏎️ Road Racer</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {ui.score}</span>
       </div>
-      <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #333', display: 'block' }} />
+      <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CW, height: CH }}>
+          <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #333', display: 'block' }} />
+        </div>
+      </div>
+      {isMobile() && <ControlsLROnly />}
     </div>
   );
 }

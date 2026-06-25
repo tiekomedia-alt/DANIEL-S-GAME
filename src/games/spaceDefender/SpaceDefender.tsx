@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadDanielSheet, drawDanielFaceCircle, isSheetLoaded } from '../../daniel-sprite';
+import { useCanvasScale, isMobile, ControlsDpadShoot } from '../../components/MobileControls';
 
 const CW = 600;
 const CH = 650;
@@ -483,14 +484,21 @@ export default function SpaceDefender({ onBack }: { onBack: () => void }) {
     };
   }, []);
 
+  const scale = useCanvasScale(CW, CH);
+
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#05050f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW, marginBottom: 8, alignItems: 'center' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#05050f', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW * scale, marginBottom: 8, alignItems: 'center' }}>
         <button onClick={onBack} style={{ background: '#222', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
         <span style={{ color: '#b39ddb', fontWeight: 900, fontSize: 20 }}>🚀 Space Defender</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Wave {ui.wave}</span>
       </div>
-      <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #1a1a3e', display: 'block' }} />
+      <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CW, height: CH }}>
+          <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #1a1a3e', display: 'block' }} />
+        </div>
+      </div>
+      {isMobile() && <ControlsDpadShoot />}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadDanielSheet, drawGameDaniel, isSheetLoaded } from '../../daniel-sprite';
+import { useCanvasScale, isMobile, ControlsLRJump } from '../../components/MobileControls';
 
 // --- Block Types ---
 const B = {
@@ -508,8 +509,8 @@ export default function MinecraftGame({ onBack }: { onBack: () => void }) {
     };
     const onMove = (e: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
-      mouse.current.x = e.clientX - r.left;
-      mouse.current.y = e.clientY - r.top;
+      mouse.current.x = (e.clientX - r.left) * (CW / r.width);
+      mouse.current.y = (e.clientY - r.top) * (CH / r.height);
     };
     const onDown = (e: MouseEvent) => {
       if (e.button === 0) mouse.current.left = true;
@@ -543,14 +544,21 @@ export default function MinecraftGame({ onBack }: { onBack: () => void }) {
     };
   }, []);
 
+  const scale = useCanvasScale(CW, CH);
+
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW, marginBottom: 8, alignItems: 'center' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#1a1a2e', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW * scale, marginBottom: 8, alignItems: 'center' }}>
         <button onClick={onBack} style={{ background: '#333', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
         <span style={{ color: '#4caf50', fontWeight: 900, fontSize: 20 }}>⛏️ Daniel's Minecraft Adventure</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {score}</span>
       </div>
-      <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #333', cursor: 'crosshair', display: 'block' }} />
+      <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CW, height: CH }}>
+          <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #333', cursor: 'crosshair', display: 'block' }} />
+        </div>
+      </div>
+      {isMobile() && <ControlsLRJump />}
     </div>
   );
 }

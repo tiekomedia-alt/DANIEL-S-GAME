@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { loadDanielSheet, drawGameDaniel, isSheetLoaded } from '../../daniel-sprite';
+import { useCanvasScale, isMobile, ControlsDpad } from '../../components/MobileControls';
 
 // Cell types
 const C = {
@@ -863,14 +864,21 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
     };
   }, [initLevel, stopTimer]);
 
+  const scale = useCanvasScale(CW, CH);
+
   return (
-    <div style={{ width: '100vw', height: '100vh', background: '#050505', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW, marginBottom: 8, alignItems: 'center' }}>
+    <div style={{ width: '100vw', height: '100vh', background: '#050505', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: scale < 1 ? 'flex-start' : 'center', paddingTop: scale < 1 ? 8 : 0, boxSizing: 'border-box' as const }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', width: CW * scale, marginBottom: 8, alignItems: 'center' }}>
         <button onClick={onBack} style={{ background: '#222', color: 'white', border: 'none', padding: '8px 18px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>← Menu</button>
         <span style={{ color: '#00e5ff', fontWeight: 900, fontSize: 20 }}>💎 Diamond Rush</span>
         <span style={{ color: '#ffd700', fontWeight: 700 }}>Score: {ui.score}</span>
       </div>
-      <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #1a1a3e', display: 'block' }} />
+      <div style={{ width: CW * scale, height: CH * scale, overflow: 'hidden', flexShrink: 0 }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', width: CW, height: CH }}>
+          <canvas ref={canvasRef} width={CW} height={CH} style={{ border: '2px solid #1a1a3e', display: 'block' }} />
+        </div>
+      </div>
+      {isMobile() && <ControlsDpad />}
     </div>
   );
 }
