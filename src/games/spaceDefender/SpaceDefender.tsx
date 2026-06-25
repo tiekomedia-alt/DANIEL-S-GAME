@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { loadDanielSheet, drawDanielFaceCircle, isSheetLoaded } from '../../daniel-sprite';
 
 const CW = 600;
 const CH = 650;
@@ -77,17 +78,21 @@ function drawDanielShip(ctx: CanvasRenderingContext2D, x: number, y: number, shi
   ctx.fillRect(16, 5, 12, 8);
 
   // Daniel face in cockpit
-  ctx.fillStyle = '#ffcc80';
-  ctx.beginPath();
-  ctx.ellipse(0, -4, 6, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#5d4037';
-  ctx.fillRect(-4, -10, 8, 3);
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(-3, -7, 2, 2);
-  ctx.fillRect(1, -7, 2, 2);
-  ctx.fillStyle = '#c62828';
-  ctx.fillRect(-2, -2, 4, 1);
+  if (isSheetLoaded()) {
+    drawDanielFaceCircle(ctx, 0, -4, 7);
+  } else {
+    ctx.fillStyle = '#ffcc80';
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 6, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(-4, -10, 8, 3);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-3, -7, 2, 2);
+    ctx.fillRect(1, -7, 2, 2);
+    ctx.fillStyle = '#c62828';
+    ctx.fillRect(-2, -2, 4, 1);
+  }
 
   // Shield
   if (shieldActive) {
@@ -185,6 +190,7 @@ export default function SpaceDefender({ onBack }: { onBack: () => void }) {
   const [ui, setUi] = useState({ score: 0, hp: 10, wave: 1, alive: true, shield: 0, triple: 0 });
 
   useEffect(() => {
+    loadDanielSheet();
     const stars: Star[] = Array.from({ length: 80 }, () => ({
       x: Math.random() * CW, y: Math.random() * CH,
       speed: Math.random() * 2 + 0.5, size: Math.random() * 2 + 0.5,

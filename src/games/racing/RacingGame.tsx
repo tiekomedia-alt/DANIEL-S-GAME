@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { loadDanielSheet, drawDanielFaceCircle, isSheetLoaded } from '../../daniel-sprite';
 
 const CW = 480;
 const CH = 640;
@@ -96,17 +97,21 @@ function drawDanielCar(ctx: CanvasRenderingContext2D, x: number, y: number, wobb
   ctx.fillRect(6, 26, 8, 4);
 
   // Daniel face in window
-  ctx.fillStyle = '#ffcc80';
-  ctx.beginPath();
-  ctx.arc(0, -12, 7, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#5d4037';
-  ctx.fillRect(-4, -18, 8, 3);
-  ctx.fillStyle = '#1a1a1a';
-  ctx.fillRect(-3, -14, 2, 2);
-  ctx.fillRect(1, -14, 2, 2);
-  ctx.fillStyle = '#c62828';
-  ctx.fillRect(-2, -9, 4, 1.5);
+  if (isSheetLoaded()) {
+    drawDanielFaceCircle(ctx, 0, -12, 7);
+  } else {
+    ctx.fillStyle = '#ffcc80';
+    ctx.beginPath();
+    ctx.arc(0, -12, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(-4, -18, 8, 3);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(-3, -14, 2, 2);
+    ctx.fillRect(1, -14, 2, 2);
+    ctx.fillStyle = '#c62828';
+    ctx.fillRect(-2, -9, 4, 1.5);
+  }
 
   ctx.restore();
 }
@@ -158,6 +163,7 @@ export default function RacingGame({ onBack }: { onBack: () => void }) {
   const [ui, setUi] = useState({ score: 0, hp: 3, speed: 60, alive: true });
 
   useEffect(() => {
+    loadDanielSheet();
     stateRef.current = {
       px: LANE_XS[1], py: CH - 120,
       playerLane: 1,

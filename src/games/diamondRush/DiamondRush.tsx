@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { loadDanielSheet, drawGameDaniel, isSheetLoaded } from '../../daniel-sprite';
 
 // Cell types
 const C = {
@@ -497,6 +498,7 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
   }, [stopTimer]);
 
   useEffect(() => {
+    loadDanielSheet();
     initLevel(0, 3, 0);
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
@@ -675,7 +677,12 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
       ctx.globalAlpha = 1;
 
       // Player
-      drawDanielExplorer(ctx, s.px * CELL, s.py * CELL, faceRight.current, walkFrame.current);
+      if (isSheetLoaded()) {
+        // Diamond Rush Daniel (index 1) — explorer hat + lantern
+        drawGameDaniel(ctx, 1, s.px * CELL - 4, s.py * CELL - 6, CELL + 8, CELL + 10, !faceRight.current);
+      } else {
+        drawDanielExplorer(ctx, s.px * CELL, s.py * CELL, faceRight.current, walkFrame.current);
+      }
 
       // ── HUD ──
       const hudY = ROWS * CELL;

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { loadDanielSheet, drawGameDaniel, isSheetLoaded } from '../../daniel-sprite';
 
 // --- Block Types ---
 const B = {
@@ -168,6 +169,7 @@ export default function MinecraftGame({ onBack }: { onBack: () => void }) {
   const [hp, setHp] = useState(10);
 
   useEffect(() => {
+    loadDanielSheet();
     const world = generateWorld();
     // Find spawn
     let spawnX = 100, spawnY = 0;
@@ -419,7 +421,15 @@ export default function MinecraftGame({ onBack }: { onBack: () => void }) {
       }
 
       // Daniel
-      drawDaniel(ctx, s.px - s.camX, s.py - s.camY, s.faceRight, s.walkFrame);
+      // Use character sheet if loaded, else fall back to drawn character
+      const psx = s.px - s.camX;
+      const psy = s.py - s.camY;
+      if (isSheetLoaded()) {
+        // Draw Minecraft Daniel (index 0) — slightly larger than hit-box for visual appeal
+        drawGameDaniel(ctx, 0, psx - 14, psy - 10, 46, 56, !s.faceRight);
+      } else {
+        drawDaniel(ctx, psx, psy, s.faceRight, s.walkFrame);
+      }
 
       // HUD - HP
       ctx.fillStyle = 'rgba(0,0,0,0.55)';

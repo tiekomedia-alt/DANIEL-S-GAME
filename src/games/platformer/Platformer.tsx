@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { loadDanielSheet, drawGameDaniel, isSheetLoaded } from '../../daniel-sprite';
 
 const CW = 800;
 const CH = 480;
@@ -130,6 +131,11 @@ interface State {
 }
 
 function drawDaniel(ctx: CanvasRenderingContext2D, x: number, y: number, frame: number, facingRight: boolean) {
+  if (isSheetLoaded()) {
+    drawGameDaniel(ctx, 4, x - 4, y - 4, PW + 8, PH + 8, !facingRight);
+    return;
+  }
+
   ctx.save();
   ctx.translate(x + PW / 2, y + PH / 2);
   if (!facingRight) ctx.scale(-1, 1);
@@ -232,6 +238,7 @@ export default function Platformer({ onBack }: { onBack: () => void }) {
   };
 
   useEffect(() => {
+    loadDanielSheet();
     initLevel(0, 3, 0);
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
