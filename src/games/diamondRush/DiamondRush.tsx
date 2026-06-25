@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { loadDanielSheet, drawGameDaniel, isSheetLoaded } from '../../daniel-sprite';
 import { useCanvasScale, isMobile, ControlsDpad } from '../../components/MobileControls';
+import { SwipeControls } from './engine/SwipeControls';
+import { FixedLoop } from './engine/FixedLoop';
+import { SaveSystem } from './engine/SaveSystem';
 
 // Cell types
 const C = {
@@ -460,10 +463,9 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<State | null>(null);
   const keysRef = useRef(new Set<string>());
-  const rafRef = useRef(0);
-  const lastPhysicsRef = useRef(0);
-  const lastFlyRef = useRef(0);
-  const lastMoveRef = useRef(0);
+  const swipeQueue = useRef<Array<[number, number]>>([]);
+  const swipeRef = useRef<SwipeControls | null>(null);
+  const fixedLoopRef = useRef<FixedLoop | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const faceRight = useRef(true);
   const walkFrame = useRef(0);
@@ -500,7 +502,8 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     loadDanielSheet();
-    initLevel(0, 3, 0);
+    const saved = SaveSystem.load();
+    initLevel(saved.stage, saved.lives > 0 ? saved.lives : 3, saved.score);
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext('2d')!;
 
@@ -790,51 +793,67 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
       }
     }
 
-    function loop(t: number) {
-      const s = stateRef.current!;
-      if (!s) { rafRef.current = requestAnimationFrame(loop); return; }
+    // ── Layer 1: Fixed-timestep loop (60 Hz physics, display-rate render) ───────
+    // Physics rates preserved from original:
+    //   boulders:  tick % 10  → 6 Hz  (was: t - last > 160ms)
+    //   fireflies: tick % 20  → 3 Hz  (was: t - last > 320ms)
+    //   player:    tick % 8   → 7.5 Hz (was: moveDelay = 130ms)
+    const swipe = new SwipeControls(canvas, (dir) => {
+      if (!stateRef.current?.alive || stateRef.current?.won) return;
+      const dm: Record<string, [number, number]> = {
+        left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1],
+      };
+      swipeQueue.current.push(dm[dir]);
+    });
 
-      s.animFrame++;
-      if (s.comboTimer > 0) s.comboTimer--;
+    const fixed = new FixedLoop(
+      (tick) => {
+        const s = stateRef.current;
+        if (!s) return;
+        s.animFrame++;
+        if (s.comboTimer > 0) s.comboTimer--;
 
-      // Physics (gravity for boulders/diamonds)
-      if (t - lastPhysicsRef.current > 160) {
-        physics();
-        lastPhysicsRef.current = t;
-      }
+        if (tick % 10 === 0) physics();
+        if (tick % 20 === 0) for (const f of s.flies) moveFly(f);
 
-      // Firefly movement
-      if (t - lastFlyRef.current > 320) {
-        for (const f of s.flies) moveFly(f);
-        lastFlyRef.current = t;
-      }
+        if (tick % 8 === 0 && s.alive && !s.won) {
+          if (swipeQueue.current.length > 0) {
+            const [dx, dy] = swipeQueue.current.shift()!;
+            tryMove(dx, dy);
+          } else {
+            const k = keysRef.current;
+            if      (k.has('ArrowLeft'))  tryMove(-1, 0);
+            else if (k.has('ArrowRight')) tryMove(1, 0);
+            else if (k.has('ArrowUp'))    tryMove(0, -1);
+            else if (k.has('ArrowDown'))  tryMove(0, 1);
+          }
+        }
 
-      // Player input
-      const k = keysRef.current;
-      if (t - lastMoveRef.current > s.moveDelay && s.alive && !s.won) {
-        if (k.has('ArrowLeft')) { tryMove(-1, 0); lastMoveRef.current = t; }
-        else if (k.has('ArrowRight')) { tryMove(1, 0); lastMoveRef.current = t; }
-        else if (k.has('ArrowUp')) { tryMove(0, -1); lastMoveRef.current = t; }
-        else if (k.has('ArrowDown')) { tryMove(0, 1); lastMoveRef.current = t; }
-      }
+        s.particles = s.particles.filter(p => {
+          p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.035;
+          p.vx *= 0.96; return p.life > 0;
+        });
 
-      // Particles
-      s.particles = s.particles.filter(p => {
-        p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.life -= 0.035;
-        p.vx *= 0.96; return p.life > 0;
-      });
-
-      draw(t);
-
-      setUi({
-        lives: s.lives, score: s.score, level: s.level + 1,
-        collected: s.collected, need: DIAMONDS_NEEDED[s.level] || 4,
-        timeLeft: s.timeLeft, alive: s.alive, won: s.won,
-        total: s.totalDiamonds,
-      });
-
-      rafRef.current = requestAnimationFrame(loop);
-    }
+        // Auto-save every 30 s (1800 ticks at 60 Hz)
+        if (tick > 0 && tick % 1800 === 0) {
+          SaveSystem.save({ stage: s.level, lives: s.lives, score: s.score });
+        }
+      },
+      (_alpha) => {
+        if (!stateRef.current) return;
+        draw(performance.now());
+        const s = stateRef.current;
+        setUi({
+          lives: s.lives, score: s.score, level: s.level + 1,
+          collected: s.collected, need: DIAMONDS_NEEDED[s.level] || 4,
+          timeLeft: s.timeLeft, alive: s.alive, won: s.won,
+          total: s.totalDiamonds,
+        });
+      },
+    );
+    fixed.start();
+    fixedLoopRef.current = fixed;
+    swipeRef.current = swipe;
 
     const onKey = (e: KeyboardEvent) => {
       keysRef.current.add(e.code);
@@ -854,11 +873,13 @@ export default function DiamondRush({ onBack }: { onBack: () => void }) {
 
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', offKey);
-    rafRef.current = requestAnimationFrame(loop);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      fixedLoopRef.current?.stop();
+      swipeRef.current?.destroy();
       stopTimer();
+      const s = stateRef.current;
+      if (s) SaveSystem.save({ stage: s.level, lives: s.lives, score: s.score });
       window.removeEventListener('keydown', onKey);
       window.removeEventListener('keyup', offKey);
     };
